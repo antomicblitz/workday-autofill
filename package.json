@@ -1,0 +1,14 @@
+{
+  "name": "workday-autofill",
+  "version": "0.1.0",
+  "description": "Fills Workday job applications from a profile file. Connects to an existing browser over CDP.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "fill":  "node src/index.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^21.3.4"
+  }
+}

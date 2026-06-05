@@ -1,0 +1,128 @@
+{
+  "_comment": "Antonio Lamb — Novartis AI Specialist application profile (ground truth = CV)",
+
+  "email":              "antonio@lambconsulting.bio",
+  "firstName":          "Viktor Antonio",
+  "lastName":           "Mackenzie-Lamb",
+  "preferredFirstName": "Antonio",
+  "preferredLastName":  "Lamb",
+  "country":            "Switzerland",
+  "street":             "Claragraben 101",
+  "city":               "Basel",
+  "postalCode":         "4057",
+  "countryRegion":      "Basel-City",
+  "phoneType":     "Mobile",
+  "phoneNumber":   "0767347766",
+
+  "source":           "LinkedIn",
+  "resumePath":       "/tmp/opencode/Antonio_Lamb_CV_Novartis_AI.docx",
+  "coverLetterPath":  "/tmp/opencode/Antonio_Lamb_CoverLetter_Novartis_AI.docx",
+  "linkedIn":         "https://www.linkedin.com/in/antoniolamb/",
+  "github":           "https://github.com/antomicblitz",
+
+  "workExperiences": [
+    {
+      "jobTitle":    "Founder & Principal Consultant",
+      "company":     "Lambda Biolab",
+      "location":    "Basel, Switzerland",
+      "current":     true,
+      "startMonth":  "1",
+      "startYear":   "2022",
+      "description": "Open-source hardware: reverse-engineered USB/serial protocol for DLAB dPette pipettes (dpette-usb-driver). Converted Anycubic i3 Mega into sub-$150 pipetting robot. Genomics: ported DeepVariant to Linux ARM64 via ONNX Runtime and to Apple Silicon via CoreML/Metal. Runs Boltz-2 and OpenMM on RTX 4090 and vast.ai. Built CellPlateVision for confluence estimation."
+    },
+    {
+      "jobTitle":    "Global Business Development Manager",
+      "company":     "SP2 Therapeutics (SP2TX)",
+      "location":    "Basel, Switzerland",
+      "current":     true,
+      "startMonth":  "1",
+      "startYear":   "2024",
+      "description": "Partner sourcing, techno-economic analysis, and project management for a synthetic-peptide platform across pharma, CROs, and academic groups."
+    },
+    {
+      "jobTitle":    "Researcher",
+      "company":     "University of Zürich",
+      "location":    "Zürich, Switzerland",
+      "current":     false,
+      "startMonth":  "1",
+      "startYear":   "2021",
+      "endMonth":    "12",
+      "endYear":     "2022",
+      "description": "In vivo immunology research. Animal-experiment certified (LTK Module 1)."
+    },
+    {
+      "jobTitle":    "Researcher",
+      "company":     "Novartis",
+      "location":    "Basel, Switzerland",
+      "current":     false,
+      "startMonth":  "1",
+      "startYear":   "2020",
+      "endMonth":    "12",
+      "endYear":     "2021",
+      "description": "Molecular biology in pharma R&D. Cloning and assay development."
+    },
+    {
+      "jobTitle":    "CEO & Co-Founder",
+      "company":     "MicroSynbiotiX",
+      "location":    "Cork, Ireland",
+      "current":     false,
+      "startMonth":  "1",
+      "startYear":   "2019",
+      "endMonth":    "12",
+      "endYear":     "2021",
+      "description": "Led SOSV/RebelBio-backed aquaculture vaccine startup through Series Seed fundraising and animal trial design. Named inventor on US 10,844,382 B2."
+    }
+  ],
+
+  "education": [
+    {
+      "school":       "Universität Basel",
+      "degree":       "Master",
+      "fieldOfStudy": "Molecular Biology",
+      "startYear":    "2017",
+      "endYear":      "2021"
+    },
+    {
+      "school":       "University of California, Santa Cruz",
+      "degree":       "Bachelor",
+      "fieldOfStudy": "Molecular Biology",
+      "startYear":    "2011",
+      "endYear":      "2015"
+    }
+  ],
+
+  "certifications": [
+    {
+      "certName":   "Certificate of Advanced Studies (CAS)",
+      "institute":  "ETH Zürich",
+      "year":       "2023"
+    },
+    {
+      "certName":   "LTK Module 1 — Animal Experiments",
+      "institute":  "University of Zürich",
+      "year":       "2021"
+    },
+    {
+      "certName":   "Bioinformatics Specialization",
+      "institute":  "UC San Diego (Coursera)",
+      "year":       "2020"
+    }
+  ],
+
+  "languages": [
+    { "language": "English", "proficiency": "Fluent" },
+    { "language": "German",  "proficiency": "Basic" },
+    { "language": "Swedish", "proficiency": "Fluent" }
+  ],
+
+  "applicationQuestions": {
+    "social media or professional network": "LinkedIn",
+    "inspired you to apply":               "Other",
+    "indicate your gender":                "I prefer not to identify",
+    "employed by or contracted":           "No",
+    "confirm your nationality":            "EU/EFTA",
+    "hold more than one nationality":      "Swiss",
+    "degree will you have completed":      "Master",
+    "long before the start date":          "more than 4 years"
+  }
+}
