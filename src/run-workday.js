@@ -193,6 +193,15 @@ async function handleStep1(page) {
   }, prevWorkerTarget);
   if (prevResult !== 'field not present') console.log('  Previous employee:', prevResult);
 
+  // ── Prefix (Mr./Mrs./Dr. etc.) — present on some tenants, absent on others ──
+  if (profile.prefix) {
+    const prefixField = snap.fields.find(f => f.label?.toLowerCase().includes('prefix'));
+    if (prefixField?.type === 'listbox' && prefixField.value === 'Select One') {
+      const r = await pickListbox(page, prefixField.id, profile.prefix);
+      console.log('  Prefix:', r.ok ? r.picked : r.error);
+    }
+  }
+
   // ── Legal Name ───────────────────────────────────────────────────────────
   // Confirmed IDs: name--legalName--firstName / name--legalName--lastName
   // (both name sections share label "Given Name(s)"/"Family Name" — use IDs directly)
@@ -519,7 +528,11 @@ async function handleQuestions(page, stepLabel) {
     }
     if (!answer) { console.log(`  [no profile answer] "${field.label?.slice(0, 70)}"`); continue; }
 
-    if (field.type === 'listbox' || field.type === 'dropdown') {
+    if (field.type === 'text' || field.type === 'textarea') {
+      const r = await fillText(page, field.id, answer);
+      console.log(`  "${field.label?.slice(0, 50)}" → ${r.ok ? answer.slice(0, 40) : r.error}`);
+
+    } else if (field.type === 'listbox' || field.type === 'dropdown') {
       const r = await pickListbox(page, field.id, answer);
       console.log(`  "${field.label?.slice(0, 50)}" → ${r.ok ? r.picked : r.error}`);
 

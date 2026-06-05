@@ -285,6 +285,9 @@ export async function fillDate(page, monthId, yearId, month, year, dayId, day) {
  * whose text matches `value` (exact first, then substring).
  */
 export async function pickListbox(page, buttonId, value) {
+  // Dismiss any stray open dropdown first so the click reliably opens this one
+  await page.keyboard.press('Escape');
+  await wait(150);
   // Open the dropdown
   await page.evaluate(id => document.getElementById(id)?.click(), buttonId);
   await wait(600);

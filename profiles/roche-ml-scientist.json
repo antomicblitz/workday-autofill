@@ -1,8 +1,14 @@
 {
-  "_comment": "Roche — Machine Learning Scientist for Drug Discovery (Basel)",
+  "_comment": "Roche — Post Doctoral Scientist (IHB), Computational Immunology (Basel)",
   "_extends": "antonio.json",
 
-  "applicationUrl": "https://roche.wd3.myworkdayjobs.com/roche-ext/job/Basel/Machine-Learning-Scientist-for-Drug-Discovery_202507-117925-2/apply/autofillWithResume",
+  "applicationUrl": "https://roche.wd3.myworkdayjobs.com/roche-ext/job/Basel/Post-Doctoral-Scientist--IHB----Computational-Immunology_202604-109696/apply/autofillWithResume",
 
-  "applicationQuestions": {}
+  "applicationQuestions": {
+    "relevant continuing professional development": "Certificate of Advanced Studies (CAS) in Bioinformatics, ETH Zürich (2023); LTK Module 1 Animal Experiments, University of Zürich (2021); Bioinformatics Specialization, UC San Diego / Coursera (2020)",
+    "highest degree/title attained":               "MSc Molecular Biology, Universität Basel (2021)",
+    "currently pursuing a degree":                 "N/A",
+    "work permit":                                 "Irish and Swedish citizen (EU/EFTA). No Swiss work permit required.",
+    "travel without restriction":                  "Yes, without restrictions"
+  }
 }
