@@ -285,9 +285,20 @@ export async function fillDate(page, monthId, yearId, month, year, dayId, day) {
  * whose text matches `value` (exact first, then substring).
  */
 export async function pickListbox(page, buttonId, value) {
-  // Dismiss any stray open dropdown first so the click reliably opens this one
+  // Dismiss any stray open dropdown — two Escape presses handle nested sub-menus.
+  // Then poll until no visible listbox remains (max ~500 ms) before opening ours.
   await page.keyboard.press('Escape');
-  await wait(150);
+  await page.keyboard.press('Escape');
+  for (let i = 0; i < 5; i++) {
+    const open = await page.evaluate(() => {
+      const lb = document.querySelector('[role="listbox"]');
+      if (!lb) return false;
+      const r = lb.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    });
+    if (!open) break;
+    await wait(100);
+  }
   // Open the dropdown
   await page.evaluate(id => document.getElementById(id)?.click(), buttonId);
   await wait(600);
@@ -564,12 +575,25 @@ export async function clickNext(page) {
 
 // ─── 11. GET ERRORS ──────────────────────────────────────────────────────────
 
-/** Return the current list of validation error messages on the page. */
+/**
+ * Return the current list of validation error messages on the page.
+ * Includes both explicit error elements AND fields marked aria-invalid
+ * (Workday sometimes shows errors only as tooltips, not in static DOM nodes).
+ */
 export async function getErrors(page) {
-  return page.evaluate(() =>
-    [...document.querySelectorAll('[data-automation-id="errorHeading"],[data-automation-id="errorMessage"]')]
-      .map(e => e.textContent.trim()).filter(Boolean)
-  );
+  return page.evaluate(() => {
+    const msgs = [...document.querySelectorAll(
+      '[data-automation-id="errorHeading"],[data-automation-id="errorMessage"]'
+    )].map(e => e.textContent.trim());
+
+    const invalid = [...document.querySelectorAll('[aria-invalid="true"]')].map(el => {
+      const label = el.closest('[data-automation-id^="formField-"]')
+        ?.querySelector('[data-automation-id="richText"]')?.innerText?.trim();
+      return label ? `${label} (required)` : el.id;
+    });
+
+    return [...msgs, ...invalid].filter(Boolean);
+  });
 }
 
 // ─── 12. SCREENSHOT ──────────────────────────────────────────────────────────

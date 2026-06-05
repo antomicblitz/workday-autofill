@@ -58,7 +58,21 @@ function loadProfile(relPath) {
   return data;
 }
 
+function validateProfile(p) {
+  const required = ['firstName', 'lastName', 'resumePath'];
+  const missing = required.filter(k => !p[k]);
+  if (missing.length) {
+    console.error(`Profile missing required fields: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  const recommended = ['email', 'phoneNumber', 'street', 'city', 'postalCode'];
+  for (const k of recommended) {
+    if (!p[k]) console.warn(`  [profile] Warning: "${k}" not set — field may be left blank`);
+  }
+}
+
 const profile = loadProfile(profileArg);
+validateProfile(profile);
 
 const rawUrl = urlArg ?? profile.applicationUrl;
 if (!rawUrl) {
@@ -107,6 +121,22 @@ function newestPanel(panels) {
   return panels.sort((a, b) => parseInt(b.split('-').pop()) - parseInt(a.split('-').pop()))[0];
 }
 
+// ─── Step classifier ─────────────────────────────────────────────────────────
+
+const QUESTION_STEP_FRAGS = [
+  'question', 'screening', 'additional information',
+  'my qualifications', 'my background', 'self-identify',
+  'u.s. equal', 'voluntary self',
+];
+const DISCLOSURE_FRAGS = ['disclos', 'voluntary', 'agreement', 'terms'];
+
+function classifyStep(name) {
+  const l = name.toLowerCase();
+  if (DISCLOSURE_FRAGS.some(f => l.includes(f))) return 'disclosure';
+  if (QUESTION_STEP_FRAGS.some(f => l.includes(f))) return 'questions';
+  return 'unknown';
+}
+
 // ─── Step handlers ───────────────────────────────────────────────────────────
 
 async function handleStep0(page) {
@@ -136,7 +166,7 @@ async function handleStep0(page) {
 
 async function handleStep1(page) {
   console.log('\n── Step 1: My Information ──');
-  const snap = await inspectPage(page);
+  let snap = await inspectPage(page);
 
   // ── Source ("How Did You Hear About Us?") ────────────────────────────────
   // Supports flat lists (source only) and two-level hierarchies (sourceCategory → source).
@@ -240,6 +270,15 @@ async function handleStep1(page) {
     }
   }
 
+  // ── Country (must precede address — triggers conditional re-render of city/postcode/region) ──
+  const countryField = findField(snap.fields, 'country');
+  if (countryField?.type === 'listbox' && countryField.value === 'Select One') {
+    const r = await pickListbox(page, countryField.id, profile.country ?? 'Switzerland');
+    console.log('  Country:', r.ok ? r.picked : r.error);
+    await wait(800);
+    snap = await inspectPage(page); // re-snap — address fields only render after country selection
+  }
+
   // ── Address ───────────────────────────────────────────────────────────────
   const streetField   = findField(snap.fields, 'street') ?? findField(snap.fields, 'address line 1');
   const cityField     = findField(snap.fields, 'city') ?? findField(snap.fields, 'municipality');
@@ -280,6 +319,18 @@ async function handleStep1(page) {
   if (phoneNumField && !phoneNumField.value) {
     await fillText(page, phoneNumField.id, profile.phoneNumber);
     console.log('  Phone number:', profile.phoneNumber);
+  }
+
+  // ── Email + LinkedIn (pre-populated by autofill but not always) ──────────
+  const emailField = findField(snap.fields, 'email');
+  if (emailField && !emailField.value && profile.email) {
+    await fillText(page, emailField.id, profile.email);
+    console.log('  Email:', profile.email);
+  }
+  const linkedInField = findField(snap.fields, 'linkedin');
+  if (linkedInField && !linkedInField.value && profile.linkedIn) {
+    await fillText(page, linkedInField.id, profile.linkedIn);
+    console.log('  LinkedIn:', profile.linkedIn);
   }
 
   await wait(300);
@@ -519,11 +570,13 @@ async function handleQuestions(page, stepLabel) {
   }
 
   const aq = profile.applicationQuestions ?? {};
+  // Longest key first so "highest degree/title attained" wins over "degree" on overlapping labels
+  const aqEntries = Object.entries(aq).sort(([a], [b]) => b.length - a.length);
 
   for (const field of snap.fields) {
     const lower = field.label?.toLowerCase() ?? '';
     let answer = null;
-    for (const [key, val] of Object.entries(aq)) {
+    for (const [key, val] of aqEntries) {
       if (lower.includes(key.toLowerCase())) { answer = val; break; }
     }
     if (!answer) { console.log(`  [no profile answer] "${field.label?.slice(0, 70)}"`); continue; }
@@ -563,8 +616,19 @@ async function handleQuestions(page, stepLabel) {
     await wait(200);
   }
 
+  // Let Workday's debounced validation settle before clicking Next
+  await wait(600);
+  const preErrors = await getErrors(page);
+  if (preErrors.length) {
+    throw new Error(`Pre-Next validation errors on "${stepLabel}": ${preErrors.join('; ')}`);
+  }
+
   const nr = await clickNext(page);
   console.log('  → Next:', nr.ok ? 'OK' : `ERRORS: ${nr.errors.join('; ')}`);
+  if (!nr.ok) {
+    const errs = await getErrors(page);
+    throw new Error(`Next failed on "${stepLabel}": ${errs.join('; ')}`);
+  }
 }
 
 async function handleDisclosure(page, stepName) {
@@ -574,7 +638,8 @@ async function handleDisclosure(page, stepName) {
       '[name="acceptTermsAndAgreements"], ' +
       '[data-automation-id="acceptTermsCheckbox"] input, ' +
       'input[type="checkbox"][id*="Terms"], ' +
-      'input[type="checkbox"][id*="terms"]'
+      'input[type="checkbox"][id*="terms"], ' +
+      '[data-automation-id="checkboxPanel"] input[type="checkbox"]'
     );
     if (!cb) return 'no T&C checkbox found';
     if (!cb.checked) { cb.scrollIntoView({ block: 'center' }); cb.click(); return 'CHECKED'; }
@@ -660,40 +725,53 @@ async function handleReview(page) {
     await handleStep2(page);
   }
 
-  // ── Question steps: dynamic — 0 to N pages, detected at runtime ──────────
-  // waitForAnyStep: polls until stepName is NOT the excluded name (page has transitioned)
-  // Returns null if no question step appears within the timeout.
+  // ── Question + Disclosure steps: dynamic loop ────────────────────────────
+  // Handles 0-N question pages, optional disclosure steps, and any step names
+  // that don't match "my experience" or "review". Uses classifyStep() to route.
   if (!skip(3)) {
-    // First: wait until we've moved off "my experience" (page transition after step 2 Next)
-    let prevStepName = 'my experience';
+    // Wait until we've moved off "my experience"
     for (let w = 0; w < 15; w++) {
       await wait(1000);
       const s = await inspectPage(page);
-      if (!s.stepName?.toLowerCase().includes('my experience')) { prevStepName = ''; break; }
+      if (!s.stepName?.toLowerCase().includes('my experience')) break;
     }
 
-    // Then handle any number of question steps
-    for (let attempt = 0; attempt < 10; attempt++) {
+    let prevStepName = '';
+    for (let attempt = 0; attempt < 12; attempt++) {
       await wait(1000);
       const qSnap = await inspectPage(page);
       const name  = qSnap.stepName?.toLowerCase() ?? '';
-      if (!name.includes('question')) break;
-      if (name === prevStepName) {
-        console.warn(`  Stuck on question step: ${qSnap.stepName} — check errors above`);
-        break;
+
+      // Stop when we reach Review
+      if (name.includes('review')) break;
+
+      const kind = classifyStep(name);
+
+      if (kind === 'disclosure') {
+        await handleDisclosure(page, qSnap.stepName);
+        prevStepName = name;
+        continue;
       }
+
+      if (kind !== 'questions') break; // unknown step — stop and fall through to waitForStep('review')
+
+      if (name === prevStepName) {
+        // Stuck — gather actionable diagnostics before throwing
+        const errs = await getErrors(page);
+        const invalidFields = await page.evaluate(() =>
+          [...document.querySelectorAll('[aria-invalid="true"]')]
+            .map(el => el.closest('[data-automation-id^="formField-"]')
+                 ?.getAttribute('data-automation-id') ?? el.id)
+        );
+        throw new Error(
+          `Stuck on "${qSnap.stepName}". ` +
+          `Errors: ${errs.join('; ') || '(none visible)'}. ` +
+          `Invalid fields: ${invalidFields.join(', ') || '(none)'}`
+        );
+      }
+
       prevStepName = name;
       await handleQuestions(page, qSnap.stepName);
-    }
-  }
-
-  // ── Voluntary Disclosures (optional step — not all employers include it) ──
-  {
-    await wait(1200);
-    const dSnap = await inspectPage(page);
-    const dName = dSnap.stepName?.toLowerCase() ?? '';
-    if (dName.includes('disclos') || dName.includes('voluntary') || dName.includes('agreement')) {
-      await handleDisclosure(page, dSnap.stepName);
     }
   }
 

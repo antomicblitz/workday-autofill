@@ -120,6 +120,12 @@
     { "language": "Swedish", "proficiency": "Fluent" }
   ],
 
+  "selfIdentify": {
+    "gender":     "I prefer not to identify",
+    "disability": "I don't wish to answer",
+    "veteran":    "I am not a protected veteran"
+  },
+
   "applicationQuestions": {
     "social media or professional network": "LinkedIn",
     "inspired you to apply":               "Other",
